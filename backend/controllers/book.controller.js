@@ -2,11 +2,10 @@ const Book = require("../models/book.model");
 const fs = require("fs");
 
 exports.createBook = (req, res, next) => {
-  const thingObject = JSON.parse(req.body.book);
-  delete thingObject._id;
-  delete thingObject._userId;
+  const bookObject = JSON.parse(req.body.book);
+  delete bookObject._id;
   const book = new Book({
-    ...thingObject,
+    ...bookObject,
     userId: req.auth.userId,
     imageUrl: `${req.protocol}://${req.get("host")}/images/${
       req.file.filename
@@ -38,31 +37,26 @@ exports.getOneBook = (req, res, next) => {
 };
 
 exports.modifyBook = (req, res, next) => {
-  const thingObject = req.file
-    ? {
-        ...JSON.parse(req.body.book),
-        imageUrl: `${req.protocol}://${req.get("host")}/images/${
-          req.file.filename
-        }`,
-      }
-    : { ...req.body };
-
-  delete thingObject._userId;
-  Book.findOne({ _id: req.params.id })
-    .then((book) => {
-      if (book.userId != req.auth.userId) {
-        res.status(401).json({ message: "Not authorized" });
-      } else {
-        Book.updateOne(
-          { _id: req.params.id },
-          { ...thingObject, _id: req.params.id }
-        )
-          .then(() => res.status(200).json({ message: "Objet modifié!" }))
-          .catch((error) => res.status(401).json({ error }));
-      }
+  const book = new Book({
+    userId: req.body.userId,
+    title: req.body.book.title,
+    author: req.body.book.author,
+    imageUrl: req.body.book.imageUrl,
+    year: req.body.book.year,
+    genre: req.body.book.genre,
+    ratings: req.body.book.ratings,
+    averageRating: req.body.book.averageRating,
+  });
+  Book.updateOne({ _id: req.params.id }, book)
+    .then(() => {
+      res.status(201).json({
+        message: "Book updated successfully!",
+      });
     })
     .catch((error) => {
-      res.status(400).json({ error });
+      res.status(400).json({
+        error: error,
+      });
     });
 };
 

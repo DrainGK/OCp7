@@ -8,18 +8,21 @@ require("./config/db");
 const app = express();
 app.use(express.json());
 
-app.use("/api/auth", userRoutes);
-app.use("/api/book", bookRoutes);
-app.use("/images", express.static(path.join(__dirname, "images")));
-
-//routes
-
 app.use(
   cors({
     origin: "http://localhost:3000",
     credentials: true,
   })
 );
+app.use("/auth", userRoutes);
+app.use("/api/book", bookRoutes);
+app.use("/images", express.static(path.join(__dirname, "images")));
+
+//routes
+
+app.get("/hello", (req, res) => {
+  res.send("Hello World!");
+});
 
 // Server
 app.listen(process.env.PORT, () => {
