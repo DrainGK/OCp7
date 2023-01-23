@@ -1,30 +1,51 @@
-const express = require("express");
-const cors = require("cors");
-const userRoutes = require("./routes/user.routes");
-const bookRoutes = require("./routes/book.routes");
-const path = require("path");
-require("dotenv").config({ path: "./config/.env" });
-require("./config/db");
-const app = express();
-app.use(express.json());
+const http = require("http");
+const app = require("./app");
 
-app.use(
-  cors({
-    origin: "http://localhost:3000",
-    credentials: true,
-  })
-);
-app.use("/auth", userRoutes);
-app.use("/api/book", bookRoutes);
-app.use("/images", express.static(path.join(__dirname, "images")));
+const normalizePort = (val) => {
+  // This function will allow us to find a valid port, in number OR string format
+  const port = parseInt(val, 10);
 
-//routes
+  if (isNaN(port)) {
+    return val;
+  }
+  if (port >= 0) {
+    return port;
+  }
+  return false;
+};
+const port = normalizePort(process.env.PORT || "4000");
+app.set("port", port);
 
-app.get("/hello", (req, res) => {
-  res.send("Hello World!");
+const errorHandler = (error) => {
+  // We're going to need some form of error handling, in case something doesn't work as intended
+  if (error.syscall !== "listen") {
+    throw error;
+  }
+  const address = server.address();
+  const bind =
+    typeof address === "string" ? "pipe " + address : "port: " + port;
+  switch (error.code) {
+    case "EACCES":
+      console.error(bind + " requires elevated privileges.");
+      process.exit(1);
+      break;
+    case "EADDRINUSE":
+      console.error(bind + " is already in use.");
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+};
+
+const server = http.createServer(app); // We use our app.js import to specify all our applications' information
+
+server.on("error", errorHandler); // If there's an error when trying to start our server, we'll be blocked here
+server.on("listening", () => {
+  // However if all goes well, then this chunk of code will be executed
+  const address = server.address();
+  const bind = typeof address === "string" ? "pipe " + address : "port " + port; // We bind the port on which the server will run
+  console.log("Listening on " + bind); // And give console confirmation that the server launched successfully
 });
 
-// Server
-app.listen(process.env.PORT, () => {
-  console.log(`listening on port${process.env.PORT}`);
-});
+server.listen(port);
