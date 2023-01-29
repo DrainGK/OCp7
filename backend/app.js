@@ -35,7 +35,7 @@ app.use((req, res, next) => {
 
 app.use(bodyParser.json()); // This will parse application/json type POST data
 
-app.use("/auth", userRoutes);
+app.use("/api/auth", userRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/images", express.static(path.join(__dirname, "images")));
 
