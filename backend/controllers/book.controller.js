@@ -2,16 +2,21 @@ const Book = require("../models/book.model");
 const fs = require("fs");
 
 exports.createBook = (req, res, next) => {
+  console.log(req.body);
   const bookObject = JSON.parse(req.body.book);
-  console.log("Book object " + bookObject);
   delete bookObject._id;
   delete bookObject._userId;
   const book = new Book({
-    ...bookObject,
-    // userId: req.auth.userId,
+    userId: req.body.userId,
+    title: req.body.book.title,
+    author: req.body.book.author,
     imageUrl: `${req.protocol}://${req.get("host")}/images/${
       req.file.filename
     }`,
+    year: req.body.book.year,
+    genre: req.body.book.genre,
+    ratings: req.body.book.ratings,
+    averageRating: req.body.book.averageRating,
   });
 
   book
