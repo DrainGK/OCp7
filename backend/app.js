@@ -8,7 +8,7 @@ const bookRoutes = require("./routes/book.routes");
 
 mongoose
   .connect(
-    "mongodb+srv://GuyLebon:h27bM18pgg4ZqEIB@cluster0.iftxwj7.mongodb.net/book",
+    "mongodb+srv://GuyLebon:Test1234@cluster0.wop2fvj.mongodb.net/grimoire",
     {
       useNewUrlParser: true,
       useUnifiedTopology: true,
