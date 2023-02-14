@@ -7,16 +7,10 @@ exports.createBook = (req, res, next) => {
   delete bookObject._id;
   delete bookObject._userId;
   const book = new Book({
-    userId: req.body.userId,
-    title: req.body.book.title,
-    author: req.body.book.author,
+    ...bookObject,
     imageUrl: `${req.protocol}://${req.get("host")}/images/${
       req.file.filename
     }`,
-    year: req.body.book.year,
-    genre: req.body.book.genre,
-    ratings: req.body.book.ratings,
-    averageRating: req.body.book.averageRating,
   });
 
   book
@@ -43,49 +37,40 @@ exports.getOneBook = (req, res, next) => {
     });
 };
 
-exports.modifyBook = (req, res, next) => {
-  const book = new Book({
-    userId: req.body.userId,
-    title: req.body.book.title,
-    author: req.body.book.author,
-    imageUrl: req.body.book.imageUrl,
-    year: req.body.book.year,
-    genre: req.body.book.genre,
-    ratings: req.body.book.ratings,
-    averageRating: req.body.book.averageRating,
-  });
-  Book.updateOne({ _id: req.params.id }, book)
-    .then(() => {
-      res.status(201).json({
-        message: "Book updated successfully!",
-      });
+exports.getBestBooks = (req, res, next) => {
+  Book.find()
+    .then((books) => {
+      books.sort((book1, book2) => book2.averageRating - book1.averageRating);
+      res.status(200).json(books.slice(0, 3));
     })
-    .catch((error) => {
-      res.status(400).json({
-        error: error,
-      });
-    });
+    .catch((error) => res.status(400).json({ error }));
+};
+
+exports.modifyBook = (req, res, next) => {
+  const bookObject = req.file
+    ? {
+        ...JSON.parse(req.body.book),
+        imageUrl: `${req.protocol}://${req.get("host")}/images/${
+          req.file.filename
+        }`,
+      }
+    : { ...req.body };
+  Book.updateOne({ _id: req.params.id }, { ...bookObject, _id: req.params.id })
+    .then(() => res.status(200).json({ message: "Objet modifié" }))
+    .catch((error) => res.status(400).json({ error }));
 };
 
 exports.deleteBook = (req, res, next) => {
   Book.findOne({ _id: req.params.id })
     .then((book) => {
-      if (book.userId != req.auth.userId) {
-        res.status(401).json({ message: "Not authorized" });
-      } else {
-        const filename = book.imageUrl.split("/images/")[1];
-        fs.unlink(`images/${filename}`, () => {
-          Book.deleteOne({ _id: req.params.id })
-            .then(() => {
-              res.status(200).json({ message: "Objet supprimé !" });
-            })
-            .catch((error) => res.status(401).json({ error }));
-        });
-      }
+      const filename = book.imageUrl.split("/images/")[1];
+      fs.unlink(`images/${filename}`, () => {
+        Book.deleteOne({ _id: req.params.id })
+          .then(() => res.status(200).json({ message: "Objet supprimé" }))
+          .catch((error) => res.status(400).json({ error }));
+      });
     })
-    .catch((error) => {
-      res.status(500).json({ error });
-    });
+    .catch((error) => res.status(500).json({ error }));
 };
 
 exports.getAllBook = (req, res, next) => {
@@ -99,3 +84,47 @@ exports.getAllBook = (req, res, next) => {
       });
     });
 };
+
+exports.addRating = (req, res, next) => {
+  const newRating = req.body;
+  if (newRating.userId != req.auth.userId) {
+    res.status(401).json({ message: "Not authorized" });
+  }
+  Book.findOne({ _id: req.params.id })
+    .then((book) => {
+      if (book.ratings.find((rating) => rating.userId === newRating.userId)) {
+        res.status(400).json({ error: "Vous avez déjà noté ce livre" });
+      } else {
+        const newBook = book;
+        newBook.ratings.push({
+          userId: newRating.userId,
+          grade: newRating.rating,
+          _id: newRating._id,
+        });
+        newBook.averageRating = calcAverageRating(book.ratings);
+
+        Book.updateOne(
+          { _id: req.params.id },
+          { ratings: newBook.ratings, averageRating: newBook.averageRating }
+        )
+          .then(() => res.status(201).json(newBook))
+          .catch((error) => {
+            console.log(error);
+            res.status(400).json({ error });
+          });
+      }
+    })
+    .catch((error) => {
+      console.log(error);
+      res.status(400).json({ error });
+    });
+};
+
+function calcAverageRating(array) {
+  let total = 0;
+  for (let i = 0; i < array.length; i++) {
+    total += Number(array[i].grade);
+  }
+
+  return parseFloat(total / array.length).toFixed(2);
+}
