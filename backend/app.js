@@ -8,7 +8,7 @@ const bookRoutes = require("./routes/book.routes");
 
 mongoose
   .connect(
-    "mongodb+srv://GuyLebon:h27bM18pgg4ZqEIB@cluster0.iftxwj7.mongodb.net/book",
+    "mongodb+srv://GuyLebon:Test1234@cluster0.wop2fvj.mongodb.net/grimoire",
     {
       useNewUrlParser: true,
       useUnifiedTopology: true,
@@ -35,8 +35,8 @@ app.use((req, res, next) => {
 
 app.use(bodyParser.json()); // This will parse application/json type POST data
 
-app.use("/api/auth", userRoutes);
 app.use("/api/books", bookRoutes);
+app.use("/api/auth", userRoutes);
 app.use("/images", express.static(path.join(__dirname, "images")));
 
 module.exports = app; // Our server.js will use all the code in here to make the backend run

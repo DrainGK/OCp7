@@ -2,25 +2,21 @@ const Book = require("../models/book.model");
 const fs = require("fs");
 
 exports.createBook = (req, res, next) => {
-  console.log(req.body);
   const bookObject = JSON.parse(req.body.book);
   delete bookObject._id;
-  delete bookObject._userId;
+  delete bookObject.userId;
+  const imageURL = `${req.protocol}://${req.get("host")}/images/${
+    req.file.filename
+  }`;
   const book = new Book({
-    ...bookObject,
-    imageUrl: `${req.protocol}://${req.get("host")}/images/${
-      req.file.filename
-    }`,
+    userId: req.auth.userId,
+    ...bookObj,
+    imageURL,
   });
-
   book
     .save()
-    .then(() => {
-      res.status(201).json({ message: "Objet enregistré !" });
-    })
-    .catch((error) => {
-      res.status(400).json({ error });
-    });
+    .then(() => res.status(201).json({ message: "Le livre a bien été créé" }))
+    .catch((error) => res.status(400).json({ error }));
 };
 
 exports.getOneBook = (req, res, next) => {
@@ -47,33 +43,52 @@ exports.getBestBooks = (req, res, next) => {
 };
 
 exports.modifyBook = (req, res, next) => {
-  const bookObject = req.file
-    ? {
-        ...JSON.parse(req.body.book),
-        imageUrl: `${req.protocol}://${req.get("host")}/images/${
-          req.file.filename
-        }`,
-      }
-    : { ...req.body };
-  Book.updateOne({ _id: req.params.id }, { ...bookObject, _id: req.params.id })
-    .then(() => res.status(200).json({ message: "Objet modifié" }))
-    .catch((error) => res.status(400).json({ error }));
+  const book = new Book({
+    _id: req.params.id,
+    userId: req.body.userId,
+    title: req.body.book.title,
+    author: req.body.book.author,
+    imageUrl: req.body.book.imageUrl,
+    year: req.body.book.year,
+    genre: req.body.book.genre,
+    ratings: req.body.book.ratings,
+    averageRating: req.body.book.averageRating,
+  });
+  Book.updateOne({ _id: req.params.id }, book)
+    .then(() => {
+      res.status(201).json({
+        message: "Book updated successfully!",
+      });
+    })
+    .catch((error) => {
+      res.status(400).json({
+        error: error,
+      });
+    });
 };
 
 exports.deleteBook = (req, res, next) => {
   Book.findOne({ _id: req.params.id })
     .then((book) => {
-      const filename = book.imageUrl.split("/images/")[1];
-      fs.unlink(`images/${filename}`, () => {
-        Book.deleteOne({ _id: req.params.id })
-          .then(() => res.status(200).json({ message: "Objet supprimé" }))
-          .catch((error) => res.status(400).json({ error }));
-      });
+      if (book.userId != req.auth.userId) {
+        res.status(401).json({ message: "Not authorized" });
+      } else {
+        const filename = book.imageUrl.split("/images/")[1];
+        fs.unlink(`images/${filename}`, () => {
+          Book.deleteOne({ _id: req.params.id })
+            .then(() => {
+              res.status(200).json({ message: "Objet supprimé !" });
+            })
+            .catch((error) => res.status(401).json({ error }));
+        });
+      }
     })
-    .catch((error) => res.status(500).json({ error }));
+    .catch((error) => {
+      res.status(500).json({ error });
+    });
 };
 
-exports.getAllBook = (req, res, next) => {
+exports.getAllBooks = (req, res, next) => {
   Book.find()
     .then((books) => {
       res.status(200).json(books);
@@ -120,6 +135,10 @@ exports.addRating = (req, res, next) => {
     });
 };
 
+/**
+ * Fonction pour calculer la note moyenne d'un livre
+ * @param {[{grade:Number}]} array
+ */
 function calcAverageRating(array) {
   let total = 0;
   for (let i = 0; i < array.length; i++) {
