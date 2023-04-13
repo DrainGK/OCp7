@@ -2,50 +2,49 @@ const http = require("http");
 const app = require("./app");
 
 const normalizePort = (val) => {
-  // This function will allow us to find a valid port, in number OR string format
-  const port = parseInt(val, 10);
+    const port = parseInt(val, 10);
 
-  if (isNaN(port)) {
-    return val;
-  }
-  if (port >= 0) {
-    return port;
-  }
-  return false;
+    if (isNaN(port))
+        return val;
+
+    if (port >= 0)
+        return port;
+
+    return false;
 };
-const port = normalizePort(process.env.PORT || "4000");
+
+const port = normalizePort(process.env.PORT || "3000");
 app.set("port", port);
 
-const errorHandler = (error) => {
-  // We're going to need some form of error handling, in case something doesn't work as intended
-  if (error.syscall !== "listen") {
-    throw error;
-  }
-  const address = server.address();
-  const bind =
-    typeof address === "string" ? "pipe " + address : "port: " + port;
-  switch (error.code) {
-    case "EACCES":
-      console.error(bind + " requires elevated privileges.");
-      process.exit(1);
-      break;
-    case "EADDRINUSE":
-      console.error(bind + " is already in use.");
-      process.exit(1);
-      break;
-    default:
-      throw error;
-  }
+const errorHandler = (err) => {
+    if (err.syscall !== "listen")
+        throw err;
+
+    const address = server.address();
+
+    const bind = typeof address === "string" ? `pipe ${address}` : `port: ${port}`;
+
+    switch (err.code) {
+        case "EACCES":
+            console.error(`${bind} requires elevated privileges.`);
+            process.exit(1);
+            break;
+        case "EADDRINUSE":
+            console.error(`${bind} is already in use.`);
+            process.exit(1);
+            break;
+        default:
+            throw err;
+    }
 };
 
-const server = http.createServer(app); // We use our app.js import to specify all our applications' information
+const server = http.createServer(app);
 
-server.on("error", errorHandler); // If there's an error when trying to start our server, we'll be blocked here
+server.on("error", errorHandler);
 server.on("listening", () => {
-  // However if all goes well, then this chunk of code will be executed
-  const address = server.address();
-  const bind = typeof address === "string" ? "pipe " + address : "port " + port; // We bind the port on which the server will run
-  console.log("Listening on " + bind); // And give console confirmation that the server launched successfully
+    const address = server.address();
+    const bind = typeof address === "string" ? `pipe ${address}` : `port: ${port}`;
+    console.log(`Listening on ${bind}`);
 });
 
 server.listen(port);
